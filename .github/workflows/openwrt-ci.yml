@@ -61,7 +61,6 @@ jobs:
           cd package
           mkdir openwrt-packages
           cd openwrt-packages
-          git clone https://github.com/kenzok8/openwrt-packages.git
           git clone https://github.com/ksatera/luci-app-openclash.git
 
       - name: Update feeds
