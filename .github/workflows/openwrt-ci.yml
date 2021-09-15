@@ -23,12 +23,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout 检验
         uses: actions/checkout@master
         with:
           ref: master
 
-      - name: Initialization environment
+      - name: Initialization environment 初始化环境
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
@@ -63,13 +63,13 @@ jobs:
           cd openwrt-packages
           git clone https://github.com/ksatera/luci-app-openclash.git
 
-      - name: Update feeds
+      - name: Update feeds 更新提要
         run: |
           ./scripts/feeds update -a
           ./scripts/feeds install -a
           make menuconfig
 
-      - name: Costom configure file
+      - name: Costom configure file 定制配置文件
         run: |
           rm -f ./.config*
           touch ./.config
