@@ -56,7 +56,6 @@ jobs:
           sed -i 's/#src-git helloworld/src-git helloworld/g' ./feeds.conf.default
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-
       - name: Costom configure file 定制配置文件
         run: |
           rm -f ./.config*
