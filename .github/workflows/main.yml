@@ -67,6 +67,14 @@ jobs:
         run: |
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+          
+      - name: install network 安装网卡
+        run: |
+          opkg update
+          opkg install http://www.openwrt.org.cn/downloads/backfire/10.03/
+                brcm63xx/packages/kmod-eeprom-93cx6_2.6.32.10-1_brcm63xx.ipk
+          opkg install http://www.openwrt.org.cn/downloads/backfire/10.03/
+                brcm63xx/packages/kmod-rtl8187_2.6.32.10+2010-05-24-1_brcm63xx.ipk
 
       - name: Costom configure file 定制配置文件
         run: |
