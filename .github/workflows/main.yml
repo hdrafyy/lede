@@ -67,30 +67,7 @@ jobs:
         run: |
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-          
-      - name: install network 安装网卡
-        run: |
-          sudo apt-get install build-essential asciidoc binutils bzip2 gawk gettext git subversion libssl-dev libncurses5-dev  patch unzip zlib1g-dev
-          sudo apt-get install libc6:i386 libgcc1:i386 libstdc++5:i386 libstdc++6:i386
-          git clone https://github.com/openwrt/openwrt.git
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
-          make defconfig
-          LuCI > 1. Collections>luci
-          LuCI > 2. Modules > Translations———————–(zh-cn)
-          LuCI > 3. Applications>luci-app-uhttpd
-          make download V=s
-          source /etc/profile
-          make V=s -j2
-          ulimit -s 10240
-          make V=s -j8
-        
-         #opkg update
-         #opkg install http://www.openwrt.org.cn/downloads/backfire/10.03/
-          #      brcm63xx/packages/kmod-eeprom-93cx6_2.6.32.10-1_brcm63xx.ipk
-         #opkg install http://www.openwrt.org.cn/downloads/backfire/10.03/
-          #      brcm63xx/packages/kmod-rtl8187_2.6.32.10+2010-05-24-1_brcm63xx.ipk
-
+    
       - name: Costom configure file 定制配置文件
         run: |
           rm -f ./.config*
@@ -160,7 +137,23 @@ jobs:
           # CONFIG_PACKAGE_kmod-fs-nfs-v4=y
           # CONFIG_PACKAGE_kmod-fs-ntfs=y
           # CONFIG_PACKAGE_kmod-fs-squashfs=y
-          # EOF
+          #
+          # 网络设备
+          Network Devices
+          # 网卡驱动
+          cat >> .config <<EOF
+          CONFIG_PACKAGE_kmod-rtl8180=y
+          CONFIG_PACKAGE_kmod-e1000e=y
+          CONFIG_PACKAGE_kmod-macvlan=y
+          EOF
+          
+          USB驱动
+          USB Support
+          cat >> .config <<EOF
+          CONFIG_PACKAGE_kmod-usb-hid=y
+          CONFIG_PACKAGE_kmod-usb2=y
+          CONFIG_PACKAGE_kmod-usb3=y
+          EOF
 
           # USB3.0支持:
           # cat >> .config <<EOF
