@@ -141,8 +141,7 @@ jobs:
 
           # 网卡驱动 Network Devices:
           cat >> .config <<EOF
-          CONFIG_PACKAGE_kmod-r8169=y
-          CONFIG_PACKAGE_kmod-rtl8187SE=y
+          CONFIG_PACKAGE_kmod-r8136=y
           EOF
           
           # USB驱动 USB Support:          
