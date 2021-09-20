@@ -141,17 +141,15 @@ jobs:
 
           # 网卡驱动 Network Devices:
           cat >> .config <<EOF
-          CONFIG_PACKAGE_kmod-rtl8180=y
-          # CONFIG_PACKAGE_kmod-e1000e=y
-          # CONFIG_PACKAGE_kmod-macvlan=y
+          CONFIG_PACKAGE_kmod-rtl8180=y                 
           EOF
           
           # USB驱动 USB Support:          
-          cat >> .config <<EOF
-          CONFIG_PACKAGE_kmod-usb-hid=y
-          CONFIG_PACKAGE_kmod-usb2=y
-          CONFIG_PACKAGE_kmod-usb3=y
-          EOF
+          # cat >> .config <<EOF
+          # CONFIG_PACKAGE_kmod-usb-hid=y
+          # CONFIG_PACKAGE_kmod-usb2=y
+          # CONFIG_PACKAGE_kmod-usb3=y
+          # EOF
 
           # USB3.0支持:
           # cat >> .config <<EOF
@@ -221,7 +219,7 @@ jobs:
 
       - name: Make download 下载
         run: |
-          make download -j1
+          make download -j8
           find dl -size -1024c -exec ls -l {} \;
           find dl -size -1024c -exec rm -f {} \;
 
