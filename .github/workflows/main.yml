@@ -7,7 +7,7 @@
 # <https://github.com/KFERMercer/OpenWrt-CI>
 #
 
-name: OpenWrt-CI增加clash
+name: OpenWrt-CI clash
 
 on:
   push:
@@ -142,8 +142,8 @@ jobs:
           # 网卡驱动 Network Devices:
           cat >> .config <<EOF
           CONFIG_PACKAGE_kmod-rtl8180=y
-          CONFIG_PACKAGE_kmod-e1000e=y
-          CONFIG_PACKAGE_kmod-macvlan=y
+          # CONFIG_PACKAGE_kmod-e1000e=y
+          # CONFIG_PACKAGE_kmod-macvlan=y
           EOF
           
           # USB驱动 USB Support:          
@@ -219,25 +219,25 @@ jobs:
           sed -i 's/^[ \t]*//g' ./.config
           make defconfig
 
-      - name: Make download
+      - name: Make download 下载
         run: |
           make download -j1
           find dl -size -1024c -exec ls -l {} \;
           find dl -size -1024c -exec rm -f {} \;
 
-      - name: Compile firmware
+      - name: Compile firmware 编译固件
         run: |
           echo -e "$(nproc) thread build."
           make -j$(nproc) V=s
 
-      - name: Assemble artifact
+      - name: Assemble artifact 装配固件
         run: |
           rm -rf ./artifact/
           mkdir -p ./artifact/
           find ./bin/targets/ -name "*combined*img*" | xargs -i mv -f {} ./artifact/
           find ./bin/targets/ -name "*sysupgrade*bin*" | xargs -i mv -f {} ./artifact/
 
-      - name: Upload artifact
+      - name: Upload artifact 上传固件
         uses: actions/upload-artifact@master
         with:
           name: OpenWrt firmware
