@@ -142,6 +142,8 @@ jobs:
           # 网卡驱动 Network Devices:
           cat >> .config <<EOF
           CONFIG_PACKAGE_kmod-rtl8139=y
+          CONFIG_PACKAGE_kmod-rtl8180=y
+          CONFIG_PACKAGE_kmod-r8169=y
           EOF
           
           # USB驱动 USB Support:          
@@ -185,6 +187,11 @@ jobs:
           CONFIG_PACKAGE_luci-app-webadmin=y
           CONFIG_PACKAGE_luci-app-wireguard=y
           CONFIG_PACKAGE_luci-app-wrtbwmon=y
+          CONFIG_PACKAGE_luci-app-wireless-regdb=y
+          CONFIG_PACKAGE_luci-app-travelmate=y
+          CONFIG_PACKAGE_luci-app-passwall=y
+          CONFIG_PACKAGE_luci-app-hd-idle=y
+          CONFIG_PACKAGE_luci-app-baidupcs-web=y
           EOF
 
           # LuCI主题:
