@@ -142,8 +142,6 @@ jobs:
 
           # 网卡驱动 Network Devices:
           cat >> .config <<EOF
-          CONFIG_PACKAGE_kmod-8139too=y
-          CONFIG_PACKAGE_kmod-rtl8180=y
           CONFIG_PACKAGE_kmod-r8169=y
           CONFIG_PACKAGE_rtl8187se=y
           EOF
