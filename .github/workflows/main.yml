@@ -62,7 +62,8 @@ jobs:
           mkdir openwrt-packages
           cd openwrt-packages
           git clone https://github.com/ksatera/luci-app-openclash.git
-          git clone https://github.com/freestyl3r/rtl8187se.git 
+          git clone https://github.com/freestyl3r/rtl8187se.git
+          git clone https://github.com/kenzok8/openwrt-packages.git
      
       - name: Update feeds 更新提要
         run: |
@@ -116,11 +117,13 @@ jobs:
           # cat >> .config <<EOF
           # CONFIG_EFI_IMAGES=y
           # EOF
+          
           # IPv6支持:
           # cat >> .config <<EOF
           # CONFIG_PACKAGE_dnsmasq_full_dhcpv6=y
           # CONFIG_PACKAGE_ipv6helper=y
           # EOF
+          
           # 多文件系统支持:
           # cat >> .config <<EOF
           # CONFIG_PACKAGE_kmod-fs-nfs=y
@@ -129,7 +132,8 @@ jobs:
           # CONFIG_PACKAGE_kmod-fs-nfs-v4=y
           # CONFIG_PACKAGE_kmod-fs-ntfs=y
           # CONFIG_PACKAGE_kmod-fs-squashfs=y
-          #
+          # EOF
+          
           # 网卡驱动 Network Devices:
           cat >> .config <<EOF
           CONFIG_PACKAGE_kmod-rtl8187se=y
@@ -182,12 +186,14 @@ jobs:
           CONFIG_PACKAGE_luci-app-passwall=y
           CONFIG_PACKAGE_luci-app-hd-idle=y
           CONFIG_PACKAGE_luci-app-baidupcs-web=y
+          CONFIG_PACKAGE_luci-app-pushbot=y
           EOF
          
           # LuCI主题:
           cat >> .config <<EOF
           CONFIG_PACKAGE_luci-theme-argon=y
           CONFIG_PACKAGE_luci-theme-netgear=y
+          CONFIG_PACKAGE_luci-theme-atmaterial_new=y
           EOF
 
           # 常用软件包:
