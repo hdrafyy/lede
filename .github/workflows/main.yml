@@ -62,8 +62,8 @@ jobs:
           mkdir openwrt-packages
           cd openwrt-packages
           git clone https://github.com/ksatera/luci-app-openclash.git 
-          git clone https://aur.archlinux.org/packages/rt/rtl8187se/rtl8187se.tar.gz
-     
+          git clone https://github.com/freestyl3r/rtl8187se.git
+          
       - name: Update feeds 更新提要
         run: |
           ./scripts/feeds update -a
