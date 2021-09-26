@@ -62,19 +62,13 @@ jobs:
           mkdir openwrt-packages
           cd openwrt-packages
           git clone https://github.com/ksatera/luci-app-openclash.git 
+          git clone https://aur.archlinux.org/packages/rt/rtl8187se/rtl8187se.tar.gz
      
       - name: Update feeds 更新提要
         run: |
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-          
-      - name: 无线网卡
-        run: |
-          wget https://aur.archlinux.org/packages/rt/rtl8187se/rtl8187se.tar.gz
-          tar xf rtl8187se.tar.gz
-          cd rtl8187se
-          makepkg -si
-    
+              
       - name: Costom configure file 定制配置文件
         run: |
           rm -f ./.config*
@@ -146,6 +140,7 @@ jobs:
           CONFIG_PACKAGE_kmod-rtl8192de=y
           CONFIG_PACKAGE_kmod-rtl8192se=y
           CONFIG_PACKAGE_kmod-r8169=y
+          CONFIG_PACKAGE_rtl8187se=y
           EOF
           
           # USB驱动 USB Support:          
