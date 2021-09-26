@@ -61,8 +61,7 @@ jobs:
           cd package
           mkdir openwrt-packages
           cd openwrt-packages
-          git clone https://github.com/ksatera/luci-app-openclash.git
-          git clone https://github.com/freestyl3r/rtl8187se.git 
+          git clone https://github.com/ksatera/luci-app-openclash.git 
      
       - name: Update feeds 更新提要
         run: |
@@ -132,10 +131,14 @@ jobs:
           #
           # 网卡驱动 Network Devices:
           cat >> .config <<EOF
-          CONFIG_PACKAGE_kmod-rtl8187se=y
+          CONFIG_PACKAGE_kmod-rtl8187=y
+          CONFIG_PACKAGE_kmod-rtl8180=y
+          CONFIG_PACKAGE_kmod-rtl8192c-common=y
+          CONFIG_PACKAGE_kmod-rtl8192ce=y
+          CONFIG_PACKAGE_kmod-rtl8192cu=y
+          CONFIG_PACKAGE_kmod-rtl8192de=y
+          CONFIG_PACKAGE_kmod-rtl8192se=y
           CONFIG_PACKAGE_kmod-r8169=y
-          CONFIG_PACKAGE_kmod-iwlwifi=y
-          CONFIG_PACKAGE_iwlwifi-firmware-iwl7265d=y
           EOF
           
           # USB驱动 USB Support:          
