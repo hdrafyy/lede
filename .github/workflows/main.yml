@@ -67,6 +67,13 @@ jobs:
         run: |
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+          
+      - name: 无线网卡
+        run: |
+          wget https://aur.archlinux.org/packages/rt/rtl8187se/rtl8187se.tar.gz
+          tar xf rtl8187se.tar.gz
+          cd rtl8187se
+          makepkg -si
     
       - name: Costom configure file 定制配置文件
         run: |
