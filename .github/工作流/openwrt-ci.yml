@@ -1,89 +1,111 @@
-#
-# This is free software, lisence use MIT.
-# 
-# Copyright (C) 2019 P3TERX <https://p3terx.com>
-# Copyright (C) 2019 KFERMercer <KFER.Mercer@gmail.com>
-# 
-# <https://github.com/KFERMercer/OpenWrt-CI>
-#
-
-name: OpenWrt-CI增加clash
+name: x86-x32-formal-edition-FusionWRT
 
 on:
-  push:
-    branches: 
-      - master
-  # schedule:
-  #   - cron: 0 20 * * *
-  # release:
-  #   types: [published]
+  repository_dispatch:
+  workflow_dispatch:
+  schedule:
+    - cron: 0 17 * * *
+  # watch:
+  #   types: started
+
+env:
+  REPO_URL: https://github.com/coolsnowwolf/lede
+  REPO_BRANCH: master
+  CONFIG_FILE: configs/lean/lean.config
+  DIY_SH: scripts/lean.sh
+  IPV6MOD_IN_FIRMWARE: true
+  KMODS_IN_FIRMWARE: true
+  UPLOAD_WETRANSFER: true
+  UPLOAD_COWTRANSFER: true
+  UPLOAD_RELEASE: true
+  TZ: Asia/Shanghai
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  Build:
+    runs-on: ubuntu-20.04
+    if: github.repository == 'DHDAXCW/FusionWRT_x86_x32'
+    outputs:
+      OPENWRTROOT: ${{ steps.update.outputs.OPENWRTROOT }}
+      PLATFORM: ${{ steps.compile.outputs.PLATFORM }}
+      TARGET: ${{ steps.compile.outputs.TARGET }}
+      SUBTARGET: ${{ steps.compile.outputs.SUBTARGET }}
+      FIRMWARE: ${{ steps.compile.outputs.FIRMWARE }}
+      GENERATE_STATUS: ${{ steps.generate.outputs.GENERATE_STATUS }}
 
     steps:
-      - name: Checkout 检验
-        uses: actions/checkout@master
-        with:
-          ref: master
+    - name: Checkout 检验
+      uses: actions/checkout@main
 
-      - name: Initialization environment 初始化环境
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: |
-          docker rmi `docker images -q`
-          echo "Deleting files, please wait ..."
-          sudo rm -rf \
-            /usr/share/dotnet \
-            /etc/mysql \
-            /etc/php
-          sudo -E apt-get -y purge \
-            azure-cli \
-            ghc* \
-            zulu* \
-            hhvm \
-            llvm* \
-            firefox \
-            google* \
-            dotnet* \
-            powershell \
-            openjdk* \
-            mysql* \
-            php*
-          sudo -E apt-get update
-          sudo -E apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3 python2.7 unzip zlib1g-dev lib32gcc1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake libtool autopoint device-tree-compiler g++-multilib antlr3 gperf wget curl swig rsync
-          sudo -E apt-get -y autoremove --purge
-          sudo -E apt-get clean
-          
-      - name: 自定义插件或主题。
-        run: |
-          cd package
-          mkdir openwrt-packages
-          cd openwrt-packages
-          git clone https://github.com/ksatera/luci-app-openclash.git
+    - name: Initialization Environment 初始化环境
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
+        sudo -E apt-get -qq update
+        sudo -E apt-get -qq install $(curl -fsSL git.io/depends-ubuntu-2004) tree
+        sudo apt-get -y install python3 git-core curl
+        sudo -E apt-get -qq autoremove --purge
+        sudo -E apt-get -qq clean
+        sudo timedatectl set-timezone "$TZ"
 
-      - name: Update feeds 更新提要
-        run: |
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
+    - name: Clone Source Code 克隆的源代码
+      run: |
+        df -hT $PWD
+        git config --global user.email "git@github.com"
+        git config --global user.name "GitHub"
+        git clone $REPO_URL -b $REPO_BRANCH openwrt
+    
+    - name: Cache 缓存
+      uses: klever1988/cachewrtbuild@main
+      with:
+        ccache: 'true'
+        prefix: ${{ github.workspace }}/openwrt
+        
+    - name: Update Feeds 更新提要
+      id: update
+      run: |
+        cd openwrt
+        echo "OPENWRTROOT=$PWD" >> $GITHUB_ENV
+        echo "::set-output name=OPENWRTROOT::$(echo $PWD)"
+        mkdir customfeeds
+        git clone --depth=1 https://github.com/coolsnowwolf/packages customfeeds/packages
+        git clone --depth=1 https://github.com/coolsnowwolf/luci customfeeds/luci
+        chmod +x ../scripts/*.sh
+        ../scripts/hook-feeds.sh
+
+    - name: MOD index file 索引文件
+      run: |
+         cd $OPENWRTROOT/package/lean/autocore/files/x86
+         sed -i '/Load Average/i\\t\t<tr><td width="33%"><%:Telegram %></td><td><a href="https://t.me/DHDAXCW"><%:电报交流群%></a></td></tr>' index.htm
+
+    - name: Install Feeds 安装源
+      run: |
+        cd $OPENWRTROOT
+        ./scripts/feeds install -a
+
+    - name: Load Custom Configuration 加载自定义配置
+      run: |
+        [ -e files ] && mv files $OPENWRTROOT/files
+        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE $OPENWRTROOT/.config
+        chmod +x scripts/*.sh
+        cd $OPENWRTROOT
+        ../$DIY_SH
+        ../scripts/preset-clash-core.sh amd64
+        ../scripts/preset-terminal-tools.sh
+        make defconfig
 
       - name: Costom configure file 定制配置文件
         run: |
           rm -f ./.config*
           touch ./.config
-
           #
           # ========================固件定制部分========================
           # 
-
           # 
           # 如果不对本区块做出任何编辑, 则生成默认配置固件. 
           # 
-
           # 以下为定制化固件选项和说明:
           #
-
           #
           # 有些插件/选项是默认开启的, 如果想要关闭, 请参照以下示例进行编写:
           # 
@@ -94,7 +116,6 @@ jobs:
           #         |  EOF                                    |
           #          =========================================
           #
-
           # 
           # 以下是一些提前准备好的一些插件选项.
           # 直接取消注释相应代码块即可应用. 不要取消注释代码块上的汉字说明.
@@ -105,7 +126,6 @@ jobs:
           # 
           # 无论你想要对固件进行怎样的定制, 都需要且只需要修改 EOF 回环内的内容.
           # 
-
           # 编译x32固件:
           cat >> .config <<EOF
           CONFIG_TARGET_x86=y
@@ -117,18 +137,15 @@ jobs:
           # cat >> .config <<EOF
           # CONFIG_TARGET_IMAGES_GZIP=y
           # EOF
-
           # 编译UEFI固件:
           # cat >> .config <<EOF
           # CONFIG_EFI_IMAGES=y
           # EOF
-
           # IPv6支持:
           # cat >> .config <<EOF
           # CONFIG_PACKAGE_dnsmasq_full_dhcpv6=y
           # CONFIG_PACKAGE_ipv6helper=y
           # EOF
-
           # 多文件系统支持:
           # cat >> .config <<EOF
           # CONFIG_PACKAGE_kmod-fs-nfs=y
@@ -137,8 +154,20 @@ jobs:
           # CONFIG_PACKAGE_kmod-fs-nfs-v4=y
           # CONFIG_PACKAGE_kmod-fs-ntfs=y
           # CONFIG_PACKAGE_kmod-fs-squashfs=y
+          #
+          # 网卡驱动 Network Devices:
+          cat >> .config <<EOF
+          CONFIG_PACKAGE_kmod-phy-realtek=y
+          CONFIG_PACKAGE_kmod-r8169=y
+          EOF
+          
+          # USB驱动 USB Support:          
+          # cat >> .config <<EOF
+          # CONFIG_PACKAGE_kmod-usb-hid=y
+          # CONFIG_PACKAGE_kmod-usb2=y
+          # CONFIG_PACKAGE_kmod-usb3=y
           # EOF
-
+          
           # USB3.0支持:
           # cat >> .config <<EOF
           # CONFIG_PACKAGE_kmod-usb-ohci=y
@@ -148,83 +177,194 @@ jobs:
           # CONFIG_PACKAGE_kmod-usb3=y
           # EOF
 
-          # 常用LuCI插件选择:
-          cat >> .config <<EOF
-          CONFIG_PACKAGE_luci-app-adbyby-plus=y
-          CONFIG_PACKAGE_luci-app-aria2=y
-          CONFIG_PACKAGE_luci-app-baidupcs-web=y
-          CONFIG_PACKAGE_luci-app-docker=y
-          CONFIG_PACKAGE_luci-app-frpc=y
-          CONFIG_PACKAGE_luci-app-hd-idle=y
-          CONFIG_PACKAGE_luci-app-kodexplorer=y
-          CONFIG_PACKAGE_luci-app-minidlna=y
-          CONFIG_PACKAGE_luci-app-openvpn=y
-          CONFIG_PACKAGE_luci-app-openvpn-server=y
-          CONFIG_PACKAGE_luci-app-qbittorrent=y
-          CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Kcptun=y
-          CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Shadowsocks=y
-          CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_ShadowsocksR_Server=y
-          CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_ShadowsocksR_Socks=y
-          CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_V2ray=y
-          CONFIG_PACKAGE_luci-app-ttyd=y
-          CONFIG_PACKAGE_luci-app-v2ray-server=y
-          CONFIG_PACKAGE_luci-app-openclash=y
-          CONFIG_PACKAGE_luci-app-verysync=y
-          CONFIG_PACKAGE_luci-app-webadmin=y
-          CONFIG_PACKAGE_luci-app-wireguard=y
-          CONFIG_PACKAGE_luci-app-wrtbwmon=y
-          EOF
+    - name: Download Package 下载包
+      id: package
+      run: |
+        cd $OPENWRTROOT
+        if "$KMODS_IN_FIRMWARE" = 'true'
+        then
+            echo "CONFIG_ALL_NONSHARED=y" >> .config
+        fi
+        ../scripts/modify_config.sh
+        cat .config
+        make download -j8
+        find dl -size -1024c -exec ls -l {} \;
+        find dl -size -1024c -exec rm -f {} \;
+  
+    - name: Compile Packages 编译的包
+      id: compile
+      run: |
+        cd $OPENWRTROOT
+        echo -e "$(nproc) thread compile"
+        make tools/compile -j$(nproc) || make tools/compile -j1 V=s
+        make toolchain/compile -j$(nproc) || make toolchain/compile -j1 V=s
+        make target/compile -j$(nproc) || make target/compile -j1 V=s IGNORE_ERRORS=1
+        make diffconfig
+        make package/compile -j$(nproc) IGNORE_ERRORS=1 || make package/compile -j1 V=s IGNORE_ERRORS=1
+        make package/index
+        cd $OPENWRTROOT/bin/packages/*
+        PLATFORM=$(basename `pwd`)
+        echo "PLATFORM=$PLATFORM" >> $GITHUB_ENV
+        echo "::set-output name=PLATFORM::$(echo $PLATFORM)"
+        cd $OPENWRTROOT/bin/targets/*
+        TARGET=$(basename `pwd`)
+        echo "TARGET=$TARGET" >> $GITHUB_ENV
+        echo "::set-output name=TARGET::$(echo $TARGET)"
+        cd *
+        SUBTARGET=$(basename `pwd`)
+        echo "SUBTARGET=$SUBTARGET" >> $GITHUB_ENV
+        echo "::set-output name=SUBTARGET::$(echo $SUBTARGET)"
+        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
+        echo "::set-output name=FIRMWARE::$(echo $PWD)"
+        echo "::set-output name=COMPILE_STATUS::success"
 
-          # LuCI主题:
-          cat >> .config <<EOF
-          CONFIG_PACKAGE_luci-theme-argon=y
-          CONFIG_PACKAGE_luci-theme-netgear=y
-          EOF
+    - name: Generate Firmware 生成的固件
+      if: steps.compile.outputs.COMPILE_STATUS == 'success'
+      id: generate
+      run: |
+        cd configs/opkg
+        sed -i "s/subtarget/$SUBTARGET/g" distfeeds*.conf
+        sed -i "s/target\//$TARGET\//g" distfeeds*.conf
+        sed -i "s/platform/$PLATFORM/g" distfeeds*.conf
+        cd $OPENWRTROOT
+        mkdir -p files/etc/uci-defaults/
+        cp ../scripts/init-settings.sh files/etc/uci-defaults/99-init-settings
+        mkdir -p files/etc/opkg
+        cp ../configs/opkg/distfeeds-packages-server.conf files/etc/opkg/distfeeds.conf.server
+        if "$KMODS_IN_FIRMWARE" = 'true'
+        then
+            mkdir -p files/www/snapshots
+            cp -r bin/targets files/www/snapshots
+            cp ../configs/opkg/distfeeds-18.06-local.conf files/etc/opkg/distfeeds.conf
+        else
+            cp ../configs/opkg/distfeeds-18.06-remote.conf files/etc/opkg/distfeeds.conf
+        fi
+        cp files/etc/opkg/distfeeds.conf.server files/etc/opkg/distfeeds.conf.mirror
+        sed -i "s/http:\/\/192.168.123.100:2345\/snapshots/https:\/\/openwrt.cc\/snapshots\/$(date +"%Y-%m-%d")\/lean/g" files/etc/opkg/distfeeds.conf.mirror
+        if "$IPV6MOD_IN_FIRMWARE" = 'true'
+        then
+            mkdir -p files/www/ipv6-modules
+            cp bin/packages/$PLATFORM/luci/luci-proto-ipv6* files/www/ipv6-modules
+            cp bin/packages/$PLATFORM/base/{ipv6helper*,odhcpd-ipv6only*,odhcp6c*,6in4*} "files/www/ipv6-modules"
+            cp bin/targets/$TARGET/$SUBTARGET/packages/{ip6tables*,kmod-nf-nat6*,kmod-ipt-nat6*,kmod-sit*,kmod-ip6tables-extra*} "files/www/ipv6-modules"
+            mkdir -p files/bin
+            cp ../scripts/ipv6-helper.sh files/bin/ipv6-helper
+        fi
+        make package/install -j$(nproc) || make package/install -j1 V=s
+        make target/install -j$(nproc) || make target/install -j1 V=s
+        make checksum
+        echo "::set-output name=GENERATE_STATUS::success"
 
-          # 常用软件包:
-          cat >> .config <<EOF
-          CONFIG_PACKAGE_curl=y
-          CONFIG_PACKAGE_htop=y
-          CONFIG_PACKAGE_nano=y
-          CONFIG_PACKAGE_screen=y
-          CONFIG_PACKAGE_tree=y
-          CONFIG_PACKAGE_vim-fuller=y
-          CONFIG_PACKAGE_wget=y
-          EOF
+    - name: Upload Bin Folder 上传本文件夹
+      uses: actions/upload-artifact@main
+      if: steps.generate.outputs.GENERATE_STATUS == 'success'
+      with:
+        name: bin-archive
+        path: openwrt/bin
+        
+  Upload:
+    needs: [Build]
+    runs-on: ubuntu-20.04
+    if: github.repository == 'DHDAXCW/FusionWRT_x86_x32'
+    steps:
 
-          # 取消编译VMware镜像以及镜像填充 (不要删除被缩进的注释符号):
-          # cat >> .config <<EOF
-          # # CONFIG_TARGET_IMAGES_PAD is not set
-          # # CONFIG_VMDK_IMAGES is not set
-          # EOF
-
-          # 
-          # ========================固件定制部分结束========================
-          # 
-
-          sed -i 's/^[ \t]*//g' ./.config
-          make defconfig
-
-      - name: Make download
+      - name: Checkout 检验
+        uses: actions/checkout@main
+        
+      - name: Restore Variables 恢复变量
         run: |
-          make download -j1
-          find dl -size -1024c -exec ls -l {} \;
-          find dl -size -1024c -exec rm -f {} \;
-
-      - name: Compile firmware
-        run: |
-          echo -e "$(nproc) thread build."
-          make -j$(nproc) V=s
-
-      - name: Assemble artifact
-        run: |
-          rm -rf ./artifact/
-          mkdir -p ./artifact/
-          find ./bin/targets/ -name "*combined*img*" | xargs -i mv -f {} ./artifact/
-          find ./bin/targets/ -name "*sysupgrade*bin*" | xargs -i mv -f {} ./artifact/
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@master
+          echo "OPENWRTROOT=$(echo '${{needs.Build.outputs.OPENWRTROOT}}')" >> $GITHUB_ENV
+          echo "PLATFORM=$(echo '${{needs.Build.outputs.PLATFORM}}')" >> $GITHUB_ENV
+          echo "TARGET=$(echo '${{needs.Build.outputs.TARGET}}')" >> $GITHUB_ENV
+          echo "SUBTARGET=$(echo '${{needs.Build.outputs.SUBTARGET}}')" >> $GITHUB_ENV
+          echo "FIRMWARE=$(echo '${{needs.Build.outputs.FIRMWARE}}')" >> $GITHUB_ENV
+          echo "GENERATE_STATUS=$(echo '${{needs.Build.outputs.GENERATE_STATUS}}')" >> $GITHUB_ENV
+        
+      - name: Download Bin Folder 下载本文件夹
+        uses: actions/download-artifact@v2
+        if: env.GENERATE_STATUS == 'success'
         with:
-          name: OpenWrt firmware
-          path: ./artifact/
+          name: bin-archive
+          path: openwrt/bin
+          
+      - name: Deploy Packages-Server 部署包服务器
+        if: env.GENERATE_STATUS == 'success'
+        run: |
+          mkdir -p server/web/snapshots/targets/$TARGET/$SUBTARGET
+          cp -r $OPENWRTROOT/bin/packages server/web/snapshots
+          cp -r $OPENWRTROOT/bin/targets/$TARGET/$SUBTARGET/packages server/web/snapshots/targets/$TARGET/$SUBTARGET
+          mv server packages-server
+          zip -qrm packages-server.zip packages-server
+          mv packages-server.zip $OPENWRTROOT/bin/targets/$TARGET/$SUBTARGET
+
+      - name: Organize Files 组织文件
+        id: organize
+        if: env.GENERATE_STATUS == 'success'
+        run: |
+          cd ${FIRMWARE}
+          rm -rf packages
+          cd $OPENWRTROOT/bin/targets/$TARGET/
+          curl -fsSL git.io/file-transfer | sh
+          df -hT $PWD
+          echo "::set-output name=ORGANIZE_STATUS::success"
+
+      - name: Upload Firmware To WeTransfer 上传固件到
+        id: wetransfer
+        if: steps.organize.outputs.ORGANIZE_STATUS == 'success' && env.UPLOAD_WETRANSFER == 'true'
+        run: |
+          cd $OPENWRTROOT/bin/targets/$TARGET/
+          ./transfer wet -s -p 16 --no-progress ${FIRMWARE} 2>&1 | tee wetransfer.log
+          echo "::warning file=Firmware-Wetransfer.com::$(cat wetransfer.log | grep https)"
+          echo "::set-output name=url::$(cat wetransfer.log | grep https | cut -f3 -d" ")"
+
+      - name: Upload Firmware To CowTransfer 上传固件到
+        id: cowtransfer
+        if: steps.organize.outputs.ORGANIZE_STATUS == 'success' && env.UPLOAD_COWTRANSFER == 'true'
+        run: |
+          cd $OPENWRTROOT/bin/targets/$TARGET/
+          ./transfer cow --block 2621440 -s -p 64 --no-progress ${FIRMWARE} 2>&1 | tee cowtransfer.log
+          echo "::warning file=Firmware-Cowtransfer.com::$(cat cowtransfer.log | grep https)"
+          echo "::set-output name=url::$(cat cowtransfer.log | grep https | cut -f3 -d" ")"
+
+      - name: Generate release tag 生成版本标记
+        id: tag
+        if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+        run: |
+          echo "::set-output name=release_tag::$(date +"%Y.%m.%d")-Lean1"
+          echo "::set-output name=release_date::$(date +"%Y.%m.%d")"
+          touch release.txt
+          [ $UPLOAD_COWTRANSFER = true ] && echo "🔗 [Cowtransfer](${{ steps.cowtransfer.outputs.url }})" >> release.txt
+          [ $UPLOAD_WETRANSFER = true ] && echo "🔗 [WeTransfer](${{ steps.wetransfer.outputs.url }})" >> release.txt
+          echo "::set-output name=status::success"
+
+      - name: Upload firmware to release 上传固件以发布
+        uses: softprops/action-gh-release@v1
+        if: steps.tag.outputs.status == 'success' && !cancelled()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: ${{ steps.tag.outputs.release_date }} x86-64-formal-edition_正式版_全插件
+          tag_name: ${{ steps.tag.outputs.release_tag }}
+          body_path: release.txt
+          files: ${{ env.FIRMWARE }}/*
+
+      - name: Delete workflow runs 删除工作流运行
+        uses: GitRML/delete-workflow-runs@main
+        with:
+          retain_days: 1
+          keep_minimum_runs: 1
+
+      - name: Remove old Releases 删除旧版本
+        uses: dev-drprasad/delete-older-releases@v0.1.0
+        if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+        with:
+          keep_latest: 20
+          delete_tags: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete Artifacts 删除构件
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          name: |
+            bin-archive
